@@ -28,7 +28,3 @@ type DeliveryJob struct {
 }
 
 
-
-type SubscriptionRepository interface {
-	GetActiveSubscriptions(tenantID string, eventType string)([]Subscription,error)
-}
