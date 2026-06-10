@@ -26,10 +26,10 @@ type SubscriptionStore interface {
 	GetActiveSubscriptions(tenantID string, eventType string) ([]domain.Subscription, error)
 }
 
-func (s *IngestionService) NewIngestionService(SubscriptionRepository SubscriptionStore, Queue *queue.Broker) *IngestionService {
+func (s *IngestionService) NewIngestionService(SubscriptionStore SubscriptionStore, Queue *queue.Broker) *IngestionService {
 	return &IngestionService{
-		SubscriptionRepository: SubscriptionRepository,
-		Queue:                  Queue,
+		SubscriptionStore: SubscriptionStore,
+		Queue:             Queue,
 	}
 }
 
