@@ -8,6 +8,6 @@ func NewBroker() *Broker {
 	return &Broker{}
 }
 
-func (b *Broker) Push(event domain.WebhookEvent) error {
+func (b *Broker) Publish(event domain.WebhookEvent) error {
 	return nil
 }

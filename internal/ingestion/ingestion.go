@@ -5,14 +5,9 @@ import (
 	"context"
 
 	"github.com/kasyap1234/webhook-service/internal/domain"
-	"github.com/zeromicro/go-zero/core/queue"
+	"github.com/kasyap1234/webhook-service/internal/queue"
 )
 
-// / will receive requests from external serivce , receives raw event, looks up who is subscribed and packages it
-//
-// next will be the queue (holds the package safely)
-//
-// worker pulls from the queue and processes the event and fires it across the internet .
 type IngestionService struct {
 	SubscriptionStore SubscriptionStore
 	Queue             *queue.Broker
@@ -33,7 +28,6 @@ func (s *IngestionService) NewIngestionService(SubscriptionStore SubscriptionSto
 	}
 }
 
-// push into the queue
 func (s *IngestionService) ProcessEvent(event domain.WebhookEvent) error {
 	err := s.Queue.Push(event)
 	if err != nil {
