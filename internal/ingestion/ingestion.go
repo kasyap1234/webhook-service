@@ -2,8 +2,6 @@
 package ingestion
 
 import (
-	"context"
-
 	"github.com/kasyap1234/webhook-service/internal/domain"
 	"github.com/kasyap1234/webhook-service/internal/queue"
 )
@@ -13,9 +11,7 @@ type IngestionService struct {
 	Queue             *queue.Broker
 }
 
-type JobPublisher interface {
-	Publish(ctx context.Context, job domain.DeliveryJob) error
-}
+
 
 type SubscriptionStore interface {
 	GetActiveSubscriptions(tenantID string, eventType string) ([]domain.Subscription, error)
@@ -28,8 +24,8 @@ func (s *IngestionService) NewIngestionService(SubscriptionStore SubscriptionSto
 	}
 }
 
-func (s *IngestionService) ProcessEvent(event domain.WebhookEvent) error {
-	err := s.Queue.Push(event)
+func (s *IngestionService)PushEvent(event domain.WebhookEvent) error {
+	err := s.Queue.Publish(event)
 	if err != nil {
 		return err
 	}
