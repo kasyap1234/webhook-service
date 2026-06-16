@@ -1,4 +1,4 @@
-// Package database 
+// Package database
 package database
 
 import (
@@ -19,7 +19,6 @@ func NewSubscriptionRepo(pool *pgxpool.Pool) *SubscriptionRepo {
 	}
 }
 
-
 func (r *SubscriptionRepo) GetActiveSubscriptions(ctx context.Context, tenantID, eventType string) ([]domain.Subscription, error) {
 	query := `SELECT * FROM subscriptions WHERE tenant_id = $1 AND event_type = $2 AND is_active = true`
 	rows, err := r.pool.Query(ctx, query, tenantID, eventType)
@@ -35,4 +34,78 @@ func (r *SubscriptionRepo) GetActiveSubscriptions(ctx context.Context, tenantID,
 	return subscriptions, nil
 }
 
+func (r *SubscriptionRepo) Subscribe(ctx context.Context, tenantID, eventType, targetURL string) error {
+	updateQuery := `
+		UPDATE subscriptions
+		SET is_active = true
+		WHERE tenant_id = $1 AND event_type = $2 AND target_url = $3
+	`
+	result, err := r.pool.Exec(ctx, updateQuery, tenantID, eventType, targetURL)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() > 0 {
+		return nil
+	}
 
+	insertQuery := `
+		INSERT INTO subscriptions (tenant_id, event_type, target_url, is_active)
+		VALUES ($1, $2, $3, true)
+	`
+	_, err = r.pool.Exec(ctx, insertQuery, tenantID, eventType, targetURL)
+	return err
+}
+
+func (r *SubscriptionRepo) Unsubscribe(ctx context.Context, tenantID, eventType, targetURL string) error {
+	query := `UPDATE subscriptions SET is_active = false WHERE tenant_id = $1 AND event_type = $2 AND target_url = $3`
+	_, err := r.pool.Exec(ctx, query, tenantID, eventType, targetURL)
+	return err
+}
+
+func (r *SubscriptionRepo) GetSubscriptions(ctx context.Context, tenantID string) ([]domain.Subscription, error) {
+	query := `SELECT * FROM subscriptions WHERE tenant_id = $1`
+	rows, err := r.pool.Query(ctx, query, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	subscriptions, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Subscription])
+	if err != nil {
+		return nil, err
+	}
+	return subscriptions, nil
+}
+
+func (r *SubscriptionRepo) GetAllSubscriptions(ctx context.Context) ([]domain.Subscription, error) {
+	query := `SELECT * FROM subscriptions`
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	subscriptions, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Subscription])
+	if err != nil {
+		return nil, err
+	}
+	return subscriptions, nil
+}
+
+func (r *SubscriptionRepo) GetSubscription(ctx context.Context, tenantID, eventType, targetURL string) (*domain.Subscription, error) {
+	query := `SELECT * FROM subscriptions WHERE tenant_id = $1 AND event_type = $2 AND target_url = $3`
+	rows, err := r.pool.Query(ctx, query, tenantID, eventType, targetURL)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	subscriptions, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Subscription])
+	if err != nil {
+		return nil, err
+	}
+	if len(subscriptions) == 0 {
+		return nil, nil
+	}
+	return &subscriptions[0], nil
+}

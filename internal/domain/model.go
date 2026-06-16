@@ -14,6 +14,8 @@ type Subscription struct {
 	ID string `json:"id"`
 	TenantID string `json:"tenant_id"`
 	TargetURL string `json:"target_url"`
+	EventType string `json:"event_type"`
+	
 	SecretKey string `json:"secret_key"`
 	IsActive bool `json:"is_active"`
 }
