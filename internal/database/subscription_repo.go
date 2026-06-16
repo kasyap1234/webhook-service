@@ -34,13 +34,13 @@ func (r *SubscriptionRepo) GetActiveSubscriptions(ctx context.Context, tenantID,
 	return subscriptions, nil
 }
 
-func (r *SubscriptionRepo) Subscribe(ctx context.Context, tenantID, eventType, targetURL string) error {
+func (r *SubscriptionRepo) Subscribe(ctx context.Context, tenantID, eventType, targetURL string, secureKey string) error {
 	updateQuery := `
 		UPDATE subscriptions
 		SET is_active = true
 		WHERE tenant_id = $1 AND event_type = $2 AND target_url = $3
 	`
-	result, err := r.pool.Exec(ctx, updateQuery, tenantID, eventType, targetURL)
+	result, err := r.pool.Exec(ctx, updateQuery, tenantID, eventType, targetURL, secureKey)
 	if err != nil {
 		return err
 	}
@@ -49,10 +49,10 @@ func (r *SubscriptionRepo) Subscribe(ctx context.Context, tenantID, eventType, t
 	}
 
 	insertQuery := `
-		INSERT INTO subscriptions (tenant_id, event_type, target_url, is_active)
-		VALUES ($1, $2, $3, true)
+		INSERT INTO subscriptions (tenant_id, event_type, target_url, is_active, secure_key)
+		VALUES ($1, $2, $3, true, $4)
 	`
-	_, err = r.pool.Exec(ctx, insertQuery, tenantID, eventType, targetURL)
+	_, err = r.pool.Exec(ctx, insertQuery, tenantID, eventType, targetURL, secureKey)
 	return err
 }
 

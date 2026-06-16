@@ -24,11 +24,4 @@ func (s *IngestionService) NewIngestionService(SubscriptionStore SubscriptionSto
 	}
 }
 
-func (s *IngestionService) PushEvent(event domain.WebhookEvent) error {
-	err := s.Queue.Publish(event)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+func (s*IngestionService)PushDeliveryJob(job domain.DeliveryJob,)
