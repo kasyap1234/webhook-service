@@ -17,33 +17,31 @@ func NewSubscriptionService(repo *database.SubscriptionStore) *SubscriptionServi
 	}
 }
 
-func (s *SubscriptionService) ActivateSubscription(ctx context.Context, payload string, tenantID, eventType, targetURL string) error {
+func (s *SubscriptionService) ActivateSubscription(ctx context.Context, payload string, tenantID, eventType, targetURL string) (string, error) {
 	// check if subscription already exists and is active
 	subscription, err := s.repo.GetSubscription(ctx, tenantID, eventType, targetURL)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if subscription != nil && subscription.IsActive {
-		return nil
+		return subscription.SecretKey, nil
 	}
 
 	// generate a secure key for the subscription
 	secretKey, err := security.GenerateSecureKey()
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	// generate signature using the secret key and payload
-	secureKey, err := security.GenerateSignature([]byte(payload), secretKey)
-	if err != nil {
-		return err
+	// create the subscription with the generated secret key
+	if err := s.repo.Subscribe(ctx, tenantID, eventType, targetURL, secretKey); err != nil {
+		return "", err
 	}
 
-	// create the subscription with the generated secure key
-	return s.repo.Subscribe(ctx, tenantID, eventType, targetURL, secureKey)
+	return secretKey, nil
 }
 
-func (s *SubscriptionService) DeactivateSubscription(ctx context.Context, tenantID, eventType, targetURL string) error {
-	return s.repo.Unsubscribe(ctx, tenantID, eventType, targetURL)
+func (s *SubscriptionService) DeactivateSubscription(ctx context.Context, tenantID, subscriptionID string) error {
+	return s.repo.Unsubscribe(ctx, tenantID, subscriptionID)
 }

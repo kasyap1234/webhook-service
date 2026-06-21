@@ -92,6 +92,9 @@ func (a *App) SetupRoutes() {
 	a.Router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+
+	a.Router.POST("/subscriptions/activate", a.Handler.SubscriptionHandler.ActivateSubscription)
+	a.Router.POST("/subscriptions/deactivate", a.Handler.SubscriptionHandler.DeactivateSubscription)
 }
 
 func (a *App) Run() {

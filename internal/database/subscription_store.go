@@ -37,7 +37,7 @@ func (r *SubscriptionStore) GetActiveSubscriptions(ctx context.Context, tenantID
 func (r *SubscriptionStore) Subscribe(ctx context.Context, tenantID, eventType, targetURL string, secureKey string) error {
 	updateQuery := `
 		UPDATE subscriptions
-		SET is_active = true
+		SET is_active = true, secure_key = $4
 		WHERE tenant_id = $1 AND event_type = $2 AND target_url = $3
 	`
 	result, err := r.pool.Exec(ctx, updateQuery, tenantID, eventType, targetURL, secureKey)
@@ -56,9 +56,9 @@ func (r *SubscriptionStore) Subscribe(ctx context.Context, tenantID, eventType, 
 	return err
 }
 
-func (r *SubscriptionStore) Unsubscribe(ctx context.Context, tenantID, eventType, targetURL string) error {
-	query := `UPDATE subscriptions SET is_active = false WHERE tenant_id = $1 AND event_type = $2 AND target_url = $3`
-	_, err := r.pool.Exec(ctx, query, tenantID, eventType, targetURL)
+func (r *SubscriptionStore) Unsubscribe(ctx context.Context, tenantID, subscriptionID string) error {
+	query := `UPDATE subscriptions SET is_active = false WHERE tenant_id = $1 AND id = $2`
+	_, err := r.pool.Exec(ctx, query, tenantID, subscriptionID)
 	return err
 }
 

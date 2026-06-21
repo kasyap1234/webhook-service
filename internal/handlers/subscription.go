@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	"context"
-
+	"github.com/gin-gonic/gin"
 	"github.com/kasyap1234/webhook-service/internal/subscription"
 )
 
@@ -16,6 +15,28 @@ func NewSubscriptionHandler(service *subscription.SubscriptionService) *Subscrip
 	}
 }
 
-func (h *SubscriptionHandler) ActivateSubscription(ctx context.Context, payload string, tenantID, eventType, targetURL string) error {
-	return h.Service.ActivateSubscription(ctx, payload, tenantID, eventType, targetURL)
+func (h *SubscriptionHandler) ActivateSubscription(c *gin.Context) {
+	ctx := c.Request.Context()
+	payload := c.PostForm("payload")
+	tenantID := c.PostForm("tenantID")
+	eventType := c.PostForm("eventType")
+	targetURL := c.PostForm("targetURL")
+	secretKey, err := h.Service.ActivateSubscription(ctx, payload, tenantID, eventType, targetURL)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "subscription activated", "secretKey": secretKey})
+}
+
+func (h *SubscriptionHandler) DeactivateSubscription(c *gin.Context) {
+	ctx := c.Request.Context()
+	subscriptionID := c.PostForm("subscriptionID")
+	tenantID := c.PostForm("tenantID")
+	err := h.Service.DeactivateSubscription(ctx, tenantID, subscriptionID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "subscription deactivated"})
 }
