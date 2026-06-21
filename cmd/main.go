@@ -1,6 +1,9 @@
-package main 
+package main
 
+import "github.com/kasyap1234/webhook-service/app"
 
-func main(){
-	
+func main() {
+	app := app.NewApp()
+	app.Run()
+
 }
