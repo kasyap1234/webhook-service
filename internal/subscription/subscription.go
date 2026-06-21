@@ -8,23 +8,18 @@ import (
 )
 
 type SubscriptionService struct {
-	repo *database.SubscriptionRepo
+	repo *database.SubscriptionStore
 }
 
-func NewSubscriptionService(repo *database.SubscriptionRepo) *SubscriptionService {
+func NewSubscriptionService(repo *database.SubscriptionStore) *SubscriptionService {
 	return &SubscriptionService{
 		repo: repo,
 	}
 }
 
-func (s *SubscriptionService) ActivateSubscription(ctx context.Context,payload string, tenantID, eventType, targetURL string) error {
+func (s *SubscriptionService) ActivateSubscription(ctx context.Context, payload string, tenantID, eventType, targetURL string) error {
 	// check if subscription already exists and is active
 	subscription, err := s.repo.GetSubscription(ctx, tenantID, eventType, targetURL)
-	secretKey,err  :=security.GenerateSecureKey()
-	if err != nil {
-		return err
-	}
-
 	if err != nil {
 		return err
 	}
@@ -32,13 +27,20 @@ func (s *SubscriptionService) ActivateSubscription(ctx context.Context,payload s
 	if subscription != nil && subscription.IsActive {
 		return nil
 	}
-	// if not active , activate it but first secure it
-	// first generate a secure key for the subscription
-	secureKey,err :=security.GenerateSignature([]byte(payload),secretKey)
-	if err !=nil{
-		return err 
+
+	// generate a secure key for the subscription
+	secretKey, err := security.GenerateSecureKey()
+	if err != nil {
+		return err
 	}
-	// secure the subscription with the generated key
+
+	// generate signature using the secret key and payload
+	secureKey, err := security.GenerateSignature([]byte(payload), secretKey)
+	if err != nil {
+		return err
+	}
+
+	// create the subscription with the generated secure key
 	return s.repo.Subscribe(ctx, tenantID, eventType, targetURL, secureKey)
 }
 

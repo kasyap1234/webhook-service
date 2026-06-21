@@ -9,17 +9,17 @@ import (
 	"github.com/kasyap1234/webhook-service/internal/domain"
 )
 
-type SubscriptionRepo struct {
+type SubscriptionStore struct {
 	pool *pgxpool.Pool
 }
 
-func NewSubscriptionRepo(pool *pgxpool.Pool) *SubscriptionRepo {
-	return &SubscriptionRepo{
+func NewSubscriptionStore(pool *pgxpool.Pool) *SubscriptionStore {
+	return &SubscriptionStore{
 		pool: pool,
 	}
 }
 
-func (r *SubscriptionRepo) GetActiveSubscriptions(ctx context.Context, tenantID, eventType string) ([]domain.Subscription, error) {
+func (r *SubscriptionStore) GetActiveSubscriptions(ctx context.Context, tenantID, eventType string) ([]domain.Subscription, error) {
 	query := `SELECT * FROM subscriptions WHERE tenant_id = $1 AND event_type = $2 AND is_active = true`
 	rows, err := r.pool.Query(ctx, query, tenantID, eventType)
 	if err != nil {
@@ -34,7 +34,7 @@ func (r *SubscriptionRepo) GetActiveSubscriptions(ctx context.Context, tenantID,
 	return subscriptions, nil
 }
 
-func (r *SubscriptionRepo) Subscribe(ctx context.Context, tenantID, eventType, targetURL string, secureKey string) error {
+func (r *SubscriptionStore) Subscribe(ctx context.Context, tenantID, eventType, targetURL string, secureKey string) error {
 	updateQuery := `
 		UPDATE subscriptions
 		SET is_active = true
@@ -56,13 +56,13 @@ func (r *SubscriptionRepo) Subscribe(ctx context.Context, tenantID, eventType, t
 	return err
 }
 
-func (r *SubscriptionRepo) Unsubscribe(ctx context.Context, tenantID, eventType, targetURL string) error {
+func (r *SubscriptionStore) Unsubscribe(ctx context.Context, tenantID, eventType, targetURL string) error {
 	query := `UPDATE subscriptions SET is_active = false WHERE tenant_id = $1 AND event_type = $2 AND target_url = $3`
 	_, err := r.pool.Exec(ctx, query, tenantID, eventType, targetURL)
 	return err
 }
 
-func (r *SubscriptionRepo) GetSubscriptions(ctx context.Context, tenantID string) ([]domain.Subscription, error) {
+func (r *SubscriptionStore) GetSubscriptions(ctx context.Context, tenantID string) ([]domain.Subscription, error) {
 	query := `SELECT * FROM subscriptions WHERE tenant_id = $1`
 	rows, err := r.pool.Query(ctx, query, tenantID)
 	if err != nil {
@@ -77,7 +77,7 @@ func (r *SubscriptionRepo) GetSubscriptions(ctx context.Context, tenantID string
 	return subscriptions, nil
 }
 
-func (r *SubscriptionRepo) GetAllSubscriptions(ctx context.Context) ([]domain.Subscription, error) {
+func (r *SubscriptionStore) GetAllSubscriptions(ctx context.Context) ([]domain.Subscription, error) {
 	query := `SELECT * FROM subscriptions`
 	rows, err := r.pool.Query(ctx, query)
 	if err != nil {
@@ -92,7 +92,7 @@ func (r *SubscriptionRepo) GetAllSubscriptions(ctx context.Context) ([]domain.Su
 	return subscriptions, nil
 }
 
-func (r *SubscriptionRepo) GetSubscription(ctx context.Context, tenantID, eventType, targetURL string) (*domain.Subscription, error) {
+func (r *SubscriptionStore) GetSubscription(ctx context.Context, tenantID, eventType, targetURL string) (*domain.Subscription, error) {
 	query := `SELECT * FROM subscriptions WHERE tenant_id = $1 AND event_type = $2 AND target_url = $3`
 	rows, err := r.pool.Query(ctx, query, tenantID, eventType, targetURL)
 	if err != nil {

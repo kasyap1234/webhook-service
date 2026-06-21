@@ -12,14 +12,10 @@ type Broker struct {
 	publisher *rabbitmq.Publisher
 }
 
-func NewBroker(conURL string) (*Broker, error) {
-	conn, err := rabbitmq.NewConn(conURL, rabbitmq.WithConnectionOptionsLogging)
-	if err != nil {
-		return nil, err
-	}
+func NewBroker(conn *rabbitmq.Conn) (*Broker, error) {
 	publisher, err := rabbitmq.NewPublisher(conn, rabbitmq.WithPublisherOptionsExchangeName("webhooks"),
 		rabbitmq.WithPublisherOptionsExchangeDeclare,
-		rabbitmq.WithPublisherOptionsExchangeKind("direct"),
+		rabbitmq.WithPublisherOptionsExchangeKind("topic"),
 		rabbitmq.WithPublisherOptionsExchangeDurable,
 		rabbitmq.WithPublisherOptionsLogging)
 	if err != nil {
