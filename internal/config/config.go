@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/caarlos0/env/v11"
 )
@@ -11,10 +10,6 @@ type Config struct {
 	Port        int    `env:"PORT" envDefault:"8080"`
 	DatabaseURL string `env:"DATABASE_URL" envDefault:"postgres://localhost:5432/webhooks?sslmode=disable"`
 	RabbitMQURL string `env:"RABBITMQ_URL"`
-}
-
-func ParseInt(s string) (int, error) {
-	return strconv.Atoi(s)
 }
 
 func LoadConfig() (*Config, error) {

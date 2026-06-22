@@ -1,6 +1,8 @@
 // Package domain
 package domain
 
+const MaxDeliveryAttempts = 5
+
 type WebhookEvent struct {
 	ID        string `json:"id"`
 	EventType string `json:"event_type"`

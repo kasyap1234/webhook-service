@@ -49,7 +49,12 @@ func (w *Worker) deliver(d rabbitmq.Delivery) rabbitmq.Action {
 	}
 
 	if err := w.handler(context.Background(), job); err != nil {
-		log.Printf("delivery handler failed for event %s: %v (will requeue)", job.EventID, err)
+		job.AttemptCount++
+		if job.AttemptCount >= domain.MaxDeliveryAttempts {
+			log.Printf("delivery failed for event %s after %d attempts, discarding: %v", job.EventID, job.AttemptCount, err)
+			return rabbitmq.NackDiscard
+		}
+		log.Printf("delivery handler failed for event %s (attempt %d/%d): %v", job.EventID, job.AttemptCount, domain.MaxDeliveryAttempts, err)
 		return rabbitmq.NackRequeue
 	}
 

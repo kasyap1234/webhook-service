@@ -29,6 +29,12 @@ func GenerateSignature(payload []byte, secretKey string) (string, error) {
 	return signature, nil
 }
 
-// first we generate a secure key and then use it to sign the payload
-// we give the same key to the susbcriber so that they can verify the signature
-//
+// VerifySignature checks that the given signature matches the expected HMAC-SHA256
+// of the payload using the provided secret key. Returns true if valid.
+func VerifySignature(payload []byte, secretKey, signature string) bool {
+	expected, err := GenerateSignature(payload, secretKey)
+	if err != nil {
+		return false
+	}
+	return hmac.Equal([]byte(expected), []byte(signature))
+}

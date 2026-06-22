@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,6 +19,8 @@ import (
 	rabbitmq "github.com/wagslane/go-rabbitmq"
 )
 
+const httpClientTimeout = 30 * time.Second
+
 type App struct {
 	Router           *gin.Engine
 	Config           *config.Config
@@ -27,6 +30,7 @@ type App struct {
 	Broker           *queue.Broker
 	rabbitConn       *rabbitmq.Conn
 	pool             *pgxpool.Pool
+	idempotency     *ingestion.IdempotencyStore
 }
 
 func NewApp() *App {
@@ -60,10 +64,12 @@ func NewApp() *App {
 
 	// --- Services ---
 	subscriptionService := subscription.NewSubscriptionService(store)
-	ingestionService := ingestion.NewIngestionService(store, broker)
+	idempotencyStore := ingestion.NewIdempotencyStore(24 * time.Hour)
+	ingestionService := ingestion.NewIngestionService(store, broker, idempotencyStore)
 
 	// --- Worker with webhook delivery handler ---
-	deliverer := delivery.NewHTTPDeliverer(http.DefaultClient)
+	httpClient := &http.Client{Timeout: httpClientTimeout}
+	deliverer := delivery.NewHTTPDeliverer(httpClient)
 	worker, err := queue.NewWorker(rabbitConn, deliverer.Deliver)
 	if err != nil {
 		log.Fatalf("failed to create delivery worker: %v", err)
@@ -81,6 +87,7 @@ func NewApp() *App {
 		Broker:           broker,
 		rabbitConn:       rabbitConn,
 		pool:             pool,
+		idempotency:     idempotencyStore,
 	}
 }
 
@@ -105,5 +112,18 @@ func (a *App) Run() {
 
 	addr := fmt.Sprintf(":%d", a.Config.Port)
 	log.Printf("starting server on %s", addr)
-	a.Router.Run(addr)
+	if err := a.Router.Run(addr); err != nil {
+		log.Fatalf("failed to start server: %v", err)
+	}
+}
+
+// Close cleanly shuts down all resources.
+func (a *App) Close() {
+	a.Worker.Close()
+	a.idempotency.Close()
+	if err := a.Broker.Close(); err != nil {
+		log.Printf("error closing broker: %v", err)
+	}
+	a.rabbitConn.Close()
+	a.pool.Close()
 }

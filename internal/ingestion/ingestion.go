@@ -15,19 +15,26 @@ type SubscriptionStore interface {
 }
 
 type IngestionService struct {
-	store SubscriptionStore
-	queue *queue.Broker
+	store        SubscriptionStore
+	queue        *queue.Broker
+	idempotency  *IdempotencyStore
 }
 
-func NewIngestionService(store SubscriptionStore, queue *queue.Broker) *IngestionService {
+func NewIngestionService(store SubscriptionStore, queue *queue.Broker, idempotency *IdempotencyStore) *IngestionService {
 	return &IngestionService{
-		store: store,
-		queue: queue,
+		store:       store,
+		queue:       queue,
+		idempotency: idempotency,
 	}
 }
 
 // IngestEvent looks up active subscriptions for the event and pushes a delivery job to the queue for each one.
 func (s *IngestionService) IngestEvent(ctx context.Context, event domain.WebhookEvent) error {
+	if s.idempotency.MarkSeen(event.ID) {
+		log.Printf("duplicate event %s, skipping", event.ID)
+		return nil
+	}
+
 	subscriptions, err := s.store.GetActiveSubscriptions(ctx, event.TenantID, event.EventType)
 	if err != nil {
 		return err
@@ -45,14 +52,9 @@ func (s *IngestionService) IngestEvent(ctx context.Context, event domain.Webhook
 
 		if err := s.queue.Publish(ctx, job); err != nil {
 			log.Printf("failed to publish delivery job for subscription %s: %v", sub.ID, err)
-			return err
+			continue
 		}
 	}
 
 	return nil
-}
-
-// PushDeliveryJob publishes a single delivery job directly to the queue.
-func (s *IngestionService) PushDeliveryJob(ctx context.Context, job domain.DeliveryJob) error {
-	return s.queue.Publish(ctx, job)
 }

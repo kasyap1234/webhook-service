@@ -1,14 +1,22 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kasyap1234/webhook-service/internal/subscription"
 )
 
+// SubscriptionService defines the interface needed by SubscriptionHandler.
+type SubscriptionService interface {
+	ActivateSubscription(ctx context.Context, tenantID, eventType, targetURL string) (string, error)
+	DeactivateSubscription(ctx context.Context, tenantID, subscriptionID string) error
+}
+
 type SubscriptionHandler struct {
-	Service *subscription.SubscriptionService
+	Service SubscriptionService
 }
 
 type activateSubscriptionRequest struct {
@@ -22,7 +30,7 @@ type deactivateSubscriptionRequest struct {
 	SubscriptionID string `json:"subscription_id" binding:"required"`
 }
 
-func NewSubscriptionHandler(service *subscription.SubscriptionService) *SubscriptionHandler {
+func NewSubscriptionHandler(service SubscriptionService) *SubscriptionHandler {
 	return &SubscriptionHandler{
 		Service: service,
 	}
@@ -52,6 +60,10 @@ func (h *SubscriptionHandler) DeactivateSubscription(c *gin.Context) {
 
 	err := h.Service.DeactivateSubscription(c.Request.Context(), req.TenantID, req.SubscriptionID)
 	if err != nil {
+		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
