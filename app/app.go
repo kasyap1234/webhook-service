@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -38,10 +37,7 @@ func NewApp() *App {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		dbURL = "postgres://localhost:5432/webhooks?sslmode=disable"
-	}
+	dbURL := cfg.DatabaseURL
 
 	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
@@ -74,7 +70,7 @@ func NewApp() *App {
 	}
 
 	// --- HTTP handlers ---
-	handler := handlers.NewHandler(subscriptionService)
+	handler := handlers.NewHandler(subscriptionService, ingestionService)
 
 	return &App{
 		Config:           cfg,
@@ -89,12 +85,11 @@ func NewApp() *App {
 }
 
 func (a *App) SetupRoutes() {
-	a.Router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
+	a.Router.GET("/health", a.Handler.Health)
 
 	a.Router.POST("/subscriptions/activate", a.Handler.SubscriptionHandler.ActivateSubscription)
 	a.Router.POST("/subscriptions/deactivate", a.Handler.SubscriptionHandler.DeactivateSubscription)
+	a.Router.POST("/events", a.Handler.IngestionHandler.IngestEvent)
 }
 
 func (a *App) Run() {

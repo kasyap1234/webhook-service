@@ -1,0 +1,144 @@
+version: "3"
+
+vars:
+  DB_URL:
+    sh: echo "${DATABASE_URL:-postgres://webhook:webhooksecret@localhost:5432/webhookdb?sslmode=disable}"
+  MIGRATIONS_DIR: ./internal/migrations
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # --- Tooling ---
+  install-tools:
+    desc: Install development tools (goose, golangci-lint)
+    deps: [install-goose, install-lint]
+
+  install-goose:
+    desc: Install goose for database migrations
+    cmds:
+      - go install github.com/pressly/goose/v3/cmd/goose@latest
+
+  install-lint:
+    desc: Install golangci-lint
+    cmds:
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+  # --- Migrations ---
+  migrate:create:
+    desc: "Create a new migration file (args: name=xxx)"
+    requires:
+      vars: [name]
+    cmds:
+      - goose -dir {{.MIGRATIONS_DIR}} create {{.name}} sql
+
+  migrate:up:
+    desc: Run all pending migrations
+    cmds:
+      - goose -dir {{.MIGRATIONS_DIR}} postgres "{{.DB_URL}}" up
+
+  migrate:down:
+    desc: Roll back the last migration
+    cmds:
+      - goose -dir {{.MIGRATIONS_DIR}} postgres "{{.DB_URL}}" down
+
+  migrate:down-all:
+    desc: Roll back all migrations
+    cmds:
+      - goose -dir {{.MIGRATIONS_DIR}} postgres "{{.DB_URL}}" reset
+
+  migrate:status:
+    desc: Show migration status
+    cmds:
+      - goose -dir {{.MIGRATIONS_DIR}} postgres "{{.DB_URL}}" status
+
+  # --- Docker ---
+  compose:up:
+    desc: Start all services via docker compose
+    cmds:
+      - docker compose up -d
+
+  compose:down:
+    desc: Stop all services
+    cmds:
+      - docker compose down
+
+  compose:logs:
+    desc: Tail logs from all services
+    cmds:
+      - docker compose logs -f
+
+  compose:ps:
+    desc: Show running services
+    cmds:
+      - docker compose ps
+
+  # --- Build ---
+  build:
+    desc: Build the Go binary
+    cmds:
+      - go build -o bin/webhook-service ./cmd/main.go
+
+  build:docker:
+    desc: Build Docker image
+    cmds:
+      - docker compose build
+
+  # --- Lint ---
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run ./...
+
+  fix:
+    desc: Run golangci-lint with auto-fix
+    cmds:
+      - golangci-lint run --fix ./...
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - gofmt -s -w .
+      - goimports -w .
+
+  # --- Test ---
+  test:unit:
+    desc: Run unit tests (excludes integration tests)
+    cmds:
+      - go test -v -count=1 -short ./...
+
+  test:integration:
+    desc: Run integration tests only
+    cmds:
+      - go test -v -count=1 -tags=integration ./...
+
+  test:all:
+    desc: Run all tests (unit + integration)
+    cmds:
+      - go test -v -count=1 -tags=integration ./...
+
+  test:coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+
+  # --- Dev ---
+  run:
+    desc: Run the application
+    cmds:
+      - go run ./cmd/main.go
+
+  tidy:
+    desc: Tidy and verify Go modules
+    cmds:
+      - go mod tidy
+      - go mod verify
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf bin/
+      - rm -f coverage.out coverage.html

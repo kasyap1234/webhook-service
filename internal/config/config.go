@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Port        int    `env:"PORT" envDefault:"8080"`
+	DatabaseURL string `env:"DATABASE_URL" envDefault:"postgres://localhost:5432/webhooks?sslmode=disable"`
 	RabbitMQURL string `env:"RABBITMQ_URL"`
 }
 
