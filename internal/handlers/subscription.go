@@ -1,12 +1,25 @@
 package handlers
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/kasyap1234/webhook-service/internal/subscription"
 )
 
 type SubscriptionHandler struct {
 	Service *subscription.SubscriptionService
+}
+
+type activateSubscriptionRequest struct {
+	TenantID  string `json:"tenant_id" binding:"required"`
+	EventType string `json:"event_type" binding:"required"`
+	TargetURL string `json:"target_url" binding:"required"`
+}
+
+type deactivateSubscriptionRequest struct {
+	TenantID       string `json:"tenant_id" binding:"required"`
+	SubscriptionID string `json:"subscription_id" binding:"required"`
 }
 
 func NewSubscriptionHandler(service *subscription.SubscriptionService) *SubscriptionHandler {
@@ -16,27 +29,31 @@ func NewSubscriptionHandler(service *subscription.SubscriptionService) *Subscrip
 }
 
 func (h *SubscriptionHandler) ActivateSubscription(c *gin.Context) {
-	ctx := c.Request.Context()
-	payload := c.PostForm("payload")
-	tenantID := c.PostForm("tenantID")
-	eventType := c.PostForm("eventType")
-	targetURL := c.PostForm("targetURL")
-	secretKey, err := h.Service.ActivateSubscription(ctx, payload, tenantID, eventType, targetURL)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+	var req activateSubscriptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"message": "subscription activated", "secretKey": secretKey})
+
+	secretKey, err := h.Service.ActivateSubscription(c.Request.Context(), req.TenantID, req.EventType, req.TargetURL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "subscription activated", "secretKey": secretKey})
 }
 
 func (h *SubscriptionHandler) DeactivateSubscription(c *gin.Context) {
-	ctx := c.Request.Context()
-	subscriptionID := c.PostForm("subscriptionID")
-	tenantID := c.PostForm("tenantID")
-	err := h.Service.DeactivateSubscription(ctx, tenantID, subscriptionID)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+	var req deactivateSubscriptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"message": "subscription deactivated"})
+
+	err := h.Service.DeactivateSubscription(c.Request.Context(), req.TenantID, req.SubscriptionID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "subscription deactivated"})
 }

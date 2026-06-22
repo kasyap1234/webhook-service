@@ -92,9 +92,9 @@ func (r *SubscriptionStore) GetAllSubscriptions(ctx context.Context) ([]domain.S
 	return subscriptions, nil
 }
 
-func (r *SubscriptionStore) GetSubscription(ctx context.Context, tenantID, eventType, targetURL string) (*domain.Subscription, error) {
-	query := `SELECT * FROM subscriptions WHERE tenant_id = $1 AND event_type = $2 AND target_url = $3`
-	rows, err := r.pool.Query(ctx, query, tenantID, eventType, targetURL)
+func (r *SubscriptionStore) GetSubscription(ctx context.Context, tenantID, subscriptionID string) (*domain.Subscription, error) {
+	query := `SELECT * FROM subscriptions WHERE tenant_id = $1 AND id =$2`
+	rows, err := r.pool.Query(ctx, query, tenantID, subscriptionID)
 	if err != nil {
 		return nil, err
 	}
