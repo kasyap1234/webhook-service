@@ -9,22 +9,29 @@ import (
 	"github.com/kasyap1234/webhook-service/internal/queue"
 )
 
-// SubscriptionStore defines the data access interface needed by the ingestion service.
-type SubscriptionStore interface {
+// SubscriptionFinder retrieves active subscriptions for a given tenant and event type.
+type SubscriptionFinder interface {
 	GetActiveSubscriptions(ctx context.Context, tenantID, eventType string) ([]domain.Subscription, error)
 }
 
-type IngestionService struct {
-	store        SubscriptionStore
-	queue        *queue.Broker
-	idempotency  *IdempotencyStore
+// EventPersister persists incoming webhook events.
+type EventPersister interface {
+	CreateEvent(ctx context.Context, event *domain.WebhookEvent) error
 }
 
-func NewIngestionService(store SubscriptionStore, queue *queue.Broker, idempotency *IdempotencyStore) *IngestionService {
+type IngestionService struct {
+	subscriptions SubscriptionFinder
+	events        EventPersister
+	queue         *queue.Broker
+	idempotency   *IdempotencyStore
+}
+
+func NewIngestionService(subscriptions SubscriptionFinder, events EventPersister, queue *queue.Broker, idempotency *IdempotencyStore) *IngestionService {
 	return &IngestionService{
-		store:       store,
-		queue:       queue,
-		idempotency: idempotency,
+		subscriptions: subscriptions,
+		events:        events,
+		queue:         queue,
+		idempotency:   idempotency,
 	}
 }
 
@@ -35,7 +42,11 @@ func (s *IngestionService) IngestEvent(ctx context.Context, event domain.Webhook
 		return nil
 	}
 
-	subscriptions, err := s.store.GetActiveSubscriptions(ctx, event.TenantID, event.EventType)
+	if err := s.events.CreateEvent(ctx, &event); err != nil {
+		return err
+	}
+
+	subscriptions, err := s.subscriptions.GetActiveSubscriptions(ctx, event.TenantID, event.EventType)
 	if err != nil {
 		return err
 	}

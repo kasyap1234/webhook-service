@@ -61,16 +61,18 @@ func NewApp() *App {
 	}
 
 	store := database.NewSubscriptionStore(pool)
+	eventStore := database.NewEventStore(pool)
+	deliveryLogsStore := database.NewDeliveryLogsStore(pool)
 
 	// --- Services ---
 	subscriptionService := subscription.NewSubscriptionService(store)
 	idempotencyStore := ingestion.NewIdempotencyStore(24 * time.Hour)
-	ingestionService := ingestion.NewIngestionService(store, broker, idempotencyStore)
+	ingestionService := ingestion.NewIngestionService(store, eventStore, broker, idempotencyStore)
 
 	// --- Worker with webhook delivery handler ---
 	httpClient := &http.Client{Timeout: httpClientTimeout}
 	deliverer := delivery.NewHTTPDeliverer(httpClient)
-	worker, err := queue.NewWorker(rabbitConn, deliverer.Deliver)
+	worker, err := queue.NewWorker(rabbitConn, deliverer.Deliver, deliveryLogsStore)
 	if err != nil {
 		log.Fatalf("failed to create delivery worker: %v", err)
 	}
