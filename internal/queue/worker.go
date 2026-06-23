@@ -29,7 +29,9 @@ func NewWorker(conn *rabbitmq.Conn, handler DeliveryHandler) (*Worker, error) {
 		rabbitmq.WithConsumerOptionsExchangeKind("topic"),
 		rabbitmq.WithConsumerOptionsExchangeDurable,
 		rabbitmq.WithConsumerOptionsRoutingKey("#"),
-		rabbitmq.WithConsumerOptionsLogging)
+		rabbitmq.WithConsumerOptionsLogging,
+		rabbitmq.WithConsumerOptionsConcurrency(10),
+		rabbitmq.WithConsumerOptionsQOSPrefetch(10))
 	if err != nil {
 		return nil, err
 	}
