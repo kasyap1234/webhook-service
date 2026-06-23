@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/kasyap1234/webhook-service/internal/ingestion"
 )
 
 type Handler struct {
@@ -10,7 +9,7 @@ type Handler struct {
 	IngestionHandler    *IngestionHandler
 }
 
-func NewHandler(subscriptionService SubscriptionService, ingestionService *ingestion.IngestionService) *Handler {
+func NewHandler(subscriptionService SubscriptionService, ingestionService IngestionServiceInterface) *Handler {
 	return &Handler{
 		SubscriptionHandler: NewSubscriptionHandler(subscriptionService),
 		IngestionHandler:    NewIngestionHandler(ingestionService),

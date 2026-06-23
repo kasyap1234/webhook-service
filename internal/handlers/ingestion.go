@@ -1,15 +1,19 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kasyap1234/webhook-service/internal/domain"
-	"github.com/kasyap1234/webhook-service/internal/ingestion"
 )
 
+type IngestionServiceInterface interface {
+	IngestEvent(ctx context.Context, event domain.WebhookEvent) error
+}
+
 type IngestionHandler struct {
-	service *ingestion.IngestionService
+	service IngestionServiceInterface
 }
 
 type ingestEventRequest struct {
@@ -19,7 +23,7 @@ type ingestEventRequest struct {
 	Payload   any    `json:"payload" binding:"required"`
 }
 
-func NewIngestionHandler(service *ingestion.IngestionService) *IngestionHandler {
+func NewIngestionHandler(service IngestionServiceInterface) *IngestionHandler {
 	return &IngestionHandler{service: service}
 }
 

@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/kasyap1234/webhook-service/internal/domain"
-	"github.com/kasyap1234/webhook-service/internal/queue"
 )
 
 // SubscriptionFinder retrieves active subscriptions for a given tenant and event type.
@@ -19,14 +18,19 @@ type EventPersister interface {
 	CreateEvent(ctx context.Context, event *domain.WebhookEvent) error
 }
 
+// Publisher publishes delivery jobs to a message queue.
+type Publisher interface {
+	Publish(ctx context.Context, job domain.DeliveryJob) error
+}
+
 type IngestionService struct {
 	subscriptions SubscriptionFinder
 	events        EventPersister
-	queue         *queue.Broker
+	queue         Publisher
 	idempotency   *IdempotencyStore
 }
 
-func NewIngestionService(subscriptions SubscriptionFinder, events EventPersister, queue *queue.Broker, idempotency *IdempotencyStore) *IngestionService {
+func NewIngestionService(subscriptions SubscriptionFinder, events EventPersister, queue Publisher, idempotency *IdempotencyStore) *IngestionService {
 	return &IngestionService{
 		subscriptions: subscriptions,
 		events:        events,

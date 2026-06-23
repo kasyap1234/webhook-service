@@ -50,16 +50,9 @@ func NewWorker(conn *rabbitmq.Conn, handler DeliveryHandler, deliveryLogger Deli
 	}, nil
 }
 
-// deliver is the internal rabbitmq handler that unmarshals delivery jobs and delegates.
-func (w *Worker) deliver(d rabbitmq.Delivery) rabbitmq.Action {
-	ctx := context.Background()
-
-	var job domain.DeliveryJob
-	if err := json.Unmarshal(d.Body, &job); err != nil {
-		log.Printf("failed to unmarshal delivery job: %v", err)
-		return rabbitmq.NackDiscard
-	}
-
+// HandleDelivery processes a delivery job and returns the rabbitmq action and any error.
+// It is public so it can be tested directly without a real RabbitMQ connection.
+func (w *Worker) HandleDelivery(ctx context.Context, job domain.DeliveryJob) (rabbitmq.Action, error) {
 	start := time.Now()
 	result, err := w.handler(ctx, job)
 	durationMs := int(time.Since(start).Milliseconds())
@@ -84,7 +77,7 @@ func (w *Worker) deliver(d rabbitmq.Delivery) rabbitmq.Action {
 			entry.Status = "failed"
 			w.saveLog(ctx, entry)
 			log.Printf("delivery failed for event %s after %d attempts, discarding: %v", job.EventID, job.AttemptCount, err)
-			return rabbitmq.NackDiscard
+			return rabbitmq.NackDiscard, err
 		}
 
 		entry.StatusCode = result.StatusCode
@@ -92,7 +85,7 @@ func (w *Worker) deliver(d rabbitmq.Delivery) rabbitmq.Action {
 		entry.Status = "attempt_failed"
 		w.saveLog(ctx, entry)
 		log.Printf("delivery handler failed for event %s (attempt %d/%d): %v", job.EventID, job.AttemptCount, domain.MaxDeliveryAttempts, err)
-		return rabbitmq.NackRequeue
+		return rabbitmq.NackRequeue, err
 	}
 
 	entry.StatusCode = result.StatusCode
@@ -100,7 +93,21 @@ func (w *Worker) deliver(d rabbitmq.Delivery) rabbitmq.Action {
 	entry.Status = "success"
 	w.saveLog(ctx, entry)
 
-	return rabbitmq.Ack
+	return rabbitmq.Ack, nil
+}
+
+// deliver is the internal rabbitmq handler that unmarshals delivery jobs and delegates.
+func (w *Worker) deliver(d rabbitmq.Delivery) rabbitmq.Action {
+	ctx := context.Background()
+
+	var job domain.DeliveryJob
+	if err := json.Unmarshal(d.Body, &job); err != nil {
+		log.Printf("failed to unmarshal delivery job: %v", err)
+		return rabbitmq.NackDiscard
+	}
+
+	action, _ := w.HandleDelivery(ctx, job)
+	return action
 }
 
 func (w *Worker) saveLog(ctx context.Context, entry *domain.DeliveryLog) {

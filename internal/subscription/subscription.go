@@ -4,17 +4,23 @@ import (
 	"context"
 	"errors"
 
-	"github.com/kasyap1234/webhook-service/internal/database"
+	"github.com/kasyap1234/webhook-service/internal/domain"
 	"github.com/kasyap1234/webhook-service/internal/security"
 )
 
 var ErrSubscriptionNotFound = errors.New("subscription not found or already inactive")
 
-type SubscriptionService struct {
-	repo *database.SubscriptionStore
+type SubscriptionRepository interface {
+	Subscribe(ctx context.Context, tenantID, eventType, targetURL, secretKey string) error
+	GetSubscription(ctx context.Context, tenantID, subscriptionID string) (*domain.Subscription, error)
+	Unsubscribe(ctx context.Context, tenantID, subscriptionID string) error
 }
 
-func NewSubscriptionService(repo *database.SubscriptionStore) *SubscriptionService {
+type SubscriptionService struct {
+	repo SubscriptionRepository
+}
+
+func NewSubscriptionService(repo SubscriptionRepository) *SubscriptionService {
 	return &SubscriptionService{
 		repo: repo,
 	}
