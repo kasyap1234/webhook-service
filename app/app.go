@@ -17,6 +17,7 @@ import (
 	"github.com/kasyap1234/webhook-service/internal/queue"
 	"github.com/kasyap1234/webhook-service/internal/subscription"
 	rabbitmq "github.com/wagslane/go-rabbitmq"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
 
 const httpClientTimeout = 30 * time.Second
@@ -30,7 +31,7 @@ type App struct {
 	Broker           *queue.Broker
 	rabbitConn       *rabbitmq.Conn
 	pool             *pgxpool.Pool
-	idempotency     *ingestion.IdempotencyStore
+	idempotency      *ingestion.IdempotencyStore
 }
 
 func NewApp() *App {
@@ -89,11 +90,14 @@ func NewApp() *App {
 		Broker:           broker,
 		rabbitConn:       rabbitConn,
 		pool:             pool,
-		idempotency:     idempotencyStore,
+		idempotency:      idempotencyStore,
 	}
 }
 
 func (a *App) SetupRoutes() {
+	p := ginprometheus.NewPrometheus("gin")
+	p.Use(a.Router)
+
 	a.Router.GET("/health", a.Handler.Health)
 
 	a.Router.POST("/subscriptions/activate", a.Handler.SubscriptionHandler.ActivateSubscription)

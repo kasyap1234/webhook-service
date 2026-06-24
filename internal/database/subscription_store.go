@@ -36,7 +36,7 @@ func (r *SubscriptionStore) GetActiveSubscriptions(ctx context.Context, tenantID
 	return subscriptions, nil
 }
 
-func (r *SubscriptionStore) Subscribe(ctx context.Context, tenantID, eventType, targetURL string, secretKey string) error {
+func (r *SubscriptionStore) Subscribe(ctx context.Context, tenantID, eventType, targetURL, secretKey string) error {
 	updateQuery := `
 		UPDATE subscriptions
 		SET is_active = true, secret_key = $4

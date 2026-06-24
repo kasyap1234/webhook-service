@@ -9,9 +9,9 @@ import (
 )
 
 type mockRepo struct {
-	subscribeFn      func(ctx context.Context, tenantID, eventType, targetURL, secretKey string) error
+	subscribeFn       func(ctx context.Context, tenantID, eventType, targetURL, secretKey string) error
 	getSubscriptionFn func(ctx context.Context, tenantID, subscriptionID string) (*domain.Subscription, error)
-	unsubscribeFn    func(ctx context.Context, tenantID, subscriptionID string) error
+	unsubscribeFn     func(ctx context.Context, tenantID, subscriptionID string) error
 }
 
 func (m *mockRepo) Subscribe(ctx context.Context, tenantID, eventType, targetURL, secretKey string) error {

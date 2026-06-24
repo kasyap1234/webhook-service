@@ -30,7 +30,6 @@ func (b *Broker) Publish(ctx context.Context, job domain.DeliveryJob) error {
 		return err
 	}
 	return b.publisher.PublishWithContext(ctx, body, []string{job.EventType}, rabbitmq.WithPublishOptionsContentType("application/json"), rabbitmq.WithPublishOptionsExchange("webhooks"), rabbitmq.WithPublishOptionsPersistentDelivery)
-
 }
 
 func (b *Broker) Close() error {

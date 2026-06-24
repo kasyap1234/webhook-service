@@ -7,10 +7,10 @@ import (
 
 // IdempotencyStore tracks recently processed event IDs to prevent duplicate processing.
 type IdempotencyStore struct {
-	mu      sync.Mutex
-	seen    map[string]time.Time
-	ttl     time.Duration
-	stopCh  chan struct{}
+	mu     sync.Mutex
+	seen   map[string]time.Time
+	ttl    time.Duration
+	stopCh chan struct{}
 }
 
 // NewIdempotencyStore creates a store that deduplicates events for the given TTL window.

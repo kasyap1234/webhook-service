@@ -204,10 +204,6 @@ func TestIngestEvent_PublishError_Continues(t *testing.T) {
 	}
 }
 
-type eventPersisterCalls struct {
-	events []*domain.WebhookEvent
-}
-
 func TestIngestEvent_PersistsEvent(t *testing.T) {
 	idempotency := NewIdempotencyStore(24 * 3600e9)
 	defer idempotency.Close()

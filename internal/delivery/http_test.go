@@ -20,7 +20,7 @@ func TestHTTPDeliverer_Deliver_Success(t *testing.T) {
 		receivedHeaders = r.Header
 		receivedBody, _ = io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"ok":true}`))
+		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
 	defer server.Close()
 
@@ -52,7 +52,7 @@ func TestHTTPDeliverer_Deliver_Success(t *testing.T) {
 	if receivedHeaders.Get("X-Webhook-Signature") == "" {
 		t.Error("expected X-Webhook-Signature header to be set")
 	}
-	if string(receivedBody) == "" {
+	if len(receivedBody) == 0 {
 		t.Error("expected non-empty request body")
 	}
 }
@@ -91,7 +91,7 @@ func TestHTTPDeliverer_Deliver_SignatureValid(t *testing.T) {
 func TestHTTPDeliverer_Deliver_Non2xx(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"internal"}`))
+		_, _ = w.Write([]byte(`{"error":"internal"}`))
 	}))
 	defer server.Close()
 

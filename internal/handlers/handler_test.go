@@ -19,7 +19,7 @@ func TestHandler_Health(t *testing.T) {
 	}
 	router.GET("/health", handler.Health)
 
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/health", http.NoBody)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
